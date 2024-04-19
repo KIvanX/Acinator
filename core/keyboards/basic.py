@@ -3,11 +3,12 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-def get_main_keyboard():
+def get_main_keyboard(is_admin=False):
     builder = InlineKeyboardBuilder()
     builder.button(text='Начать игру', callback_data='game')
     builder.button(text='Отвечать на вопросы', callback_data='fill')
-    builder.button(text='База', callback_data='show')
+    if is_admin:
+        builder.button(text='База', callback_data='show')
     builder.adjust(1, 2)
     return builder.as_markup()
 

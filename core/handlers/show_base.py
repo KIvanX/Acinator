@@ -6,6 +6,7 @@ from config import dp, bot
 from core.keyboards.basic import show_data_keyboard, show_menu_keyboard, show_base_keyboard
 from core.utils import database
 from core.states import GameStates
+from core.utils.database import delete_answer
 
 
 @dp.callback_query(F.data.in_(['show', 'show_q', 'show_p', 'show_left', 'show_right']))
@@ -14,6 +15,7 @@ async def select_type_show(call: types.CallbackQuery, state: FSMContext, connect
         await state.clear()
         await call.message.edit_text(f'Выбери тип', reply_markup=show_menu_keyboard())
     else:
+        await state.update_data(num='')
         state_data = await state.get_data()
         if 'type' not in state_data:
             await state.set_state(GameStates.showNumberData)
@@ -39,7 +41,17 @@ async def select_type_show(call: types.CallbackQuery, state: FSMContext, connect
 async def select_num_data(message: types.Message, state: FSMContext, connector):
     state_data = await state.get_data()
     t = state_data["type"]
-    num = int(message.text)
+
+    if state_data.get('num'):
+        pairs = message.text.replace('\n', ' ').replace(',', ' ')
+        for pair in pairs.split(' '):
+            p_id, q_id = pair.split('.')
+            await delete_answer(connector, int(p_id), int(q_id))
+        num = state_data.get('num', 0)
+    else:
+        num = int(message.text)
+        await state.update_data(num=num)
+
     await message.delete()
     data = (await (database.get_questions if t == 'q' else database.get_persons)(connector))
     answers = await database.get_answers(connector)
@@ -50,6 +62,7 @@ async def select_num_data(message: types.Message, state: FSMContext, connector):
         for q in answers[p]:
             if answers[p][q] == 1:
                 if p == num and t == "p" or q == num and t == "q":
-                    text += base[p if t == 'q' else q] + '\n'
+                    text += f'{p}.{q}) {base[p if t == "q" else q]}\n'
 
+    text += f'\nВведи номера {"фактов" if t == "q" else "персонажей"}, которых хочешь удалить'
     await bot.edit_message_text(text, message.chat.id, state_data['message_id'], reply_markup=show_base_keyboard(t))

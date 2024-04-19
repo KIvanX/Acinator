@@ -3,8 +3,7 @@ from aiogram import types
 from config import bot, dp, env
 from core.handlers import basic, game, add_person, answers_to_questions, show_base
 import asyncio
-
-from core.middlewares.basic import AddUserMiddleware
+from core.middlewares import add_user, basic
 from core.utils.database import edit_user
 
 
@@ -28,15 +27,11 @@ async def on_final(update: types.Update, connector):
 
 
 async def main():
-    connector = await asyncpg.connect(database='acinator',
-                                      host=env.str('DB_HOST'),
-                                      user=env.str('DB_USER'),
-                                      password=env.str('DB_PASSWORD'))
-
-    dp.message.middleware.register(AddUserMiddleware())
+    dp.update.middleware.register(basic.DatabaseConnectorMiddleware())
+    dp.message.middleware.register(add_user.AddUserMiddleware())
 
     print('Processing...')
-    await dp.start_polling(bot, connector=connector)
+    await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
