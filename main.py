@@ -1,7 +1,7 @@
-import asyncpg
-from aiogram import types
-from config import bot, dp, env
-from core.handlers import basic, game, add_person, answers_to_questions, show_base
+
+from aiogram import types, F
+from config import bot, dp
+from core.handlers import basic, game, answers_to_questions, show_base
 import asyncio
 from core.middlewares import add_user, basic
 from core.utils.database import edit_user
@@ -29,6 +29,10 @@ async def on_final(update: types.Update, connector):
 async def main():
     dp.update.middleware.register(basic.DatabaseConnectorMiddleware())
     dp.message.middleware.register(add_user.AddUserMiddleware())
+
+    dp.callback_query.register(game.game, F.data == 'game')
+    dp.callback_query.register(answers_to_questions.fill, F.data == 'fill')
+    dp.callback_query.register(show_base.select_type_show, F.data == 'show')
 
     print('Processing...')
     await dp.start_polling(bot)
