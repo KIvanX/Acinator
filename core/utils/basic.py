@@ -14,50 +14,49 @@ async def ask_question(rating, call: types.CallbackQuery, connector, state, phot
     answers = await database.get_answers(connector)
     questions = await database.get_questions(connector)
 
+    quest_i = -1
     if call.data == 'previous':
         state_data = await state.get_data()
         history, n = state_data['history'], state_data['n']
         quest_i, k = history[-1]
         for i in persons:
             if quest_i in answers[i]:
-                rating[i] -= k * answers[i][quest_i]
-                if k == answers[i][quest_i] == 0 or k == answers[i][quest_i] == 1:
-                    rating[i] -= 0.5
+                rating[i] -= k
 
         await state.update_data(rating=rating, quest_i=history[-1][0], history=history[:-1], n=n - 1)
 
     n = (await state.get_data()).get('n', 1)
-    counter = {i: {1: 0, 0: 0, -1: 0} for i in questions}
+    counter = {i: 0 for i in questions}
     max_rating = rating[max(rating.keys(), key=lambda p: rating[p])]
+    applicants = list(filter(lambda p: rating[p] == max_rating, list(persons)))
+    if len(applicants) < 3:
+        applicants += list(filter(lambda p: rating[p] == max_rating - 1, list(persons)))[:len(applicants)]
 
-    for i in persons:
-        if max_rating - rating[i] < WIN_ADVANCE:
-            for j in questions:
-                answers[i][j] = 0 if j not in answers[i] else answers[i][j]
-                counter[j][answers[i][j]] += 1 + (WIN_ADVANCE - max_rating + rating[i]) / 2
+    for i in applicants:
+        for j in [q for q in questions if q in answers[i]]:
+            counter[j] += 1
 
     history = (await state.get_data()).get('history', [])
-    max_act = max([actual_question(i, counter, history) for i in questions])
-    top_quest = list(filter(lambda i: max_act == actual_question(i, counter, history), questions))
+    def act(q): return actual_question(q, counter[q], len(applicants), history)
+    top_quest = sorted(list(questions), reverse=True, key=act)[:min(5, len(applicants))]
 
     if LOGS:
+        print('_' * 100)
+        print(f'applicants({len(applicants)}):', applicants)
         for i in sorted(persons.keys(), key=lambda i: rating[i], reverse=True)[:10]:
             print(f'{persons[i]}({rating[i]})', end=', ')
         print()
         print(counter)
         print([(questions[i], a) for i, a in history])
+        print('act:', actual_question(top_quest[0], counter[top_quest[0]], len(applicants), history))
 
-        for i in questions:
-            print(i, actual_question(i, counter, history), end=', ')
-        print()
-
-        print(top_quest)
+        print('top:', top_quest)
 
     max_rating = rating[max(rating.keys(), key=lambda p: rating[p])]
-    progress = round((len(persons) - len([i for i in persons if max_rating - rating[i] < 2])) / len(persons) * 100)
-    quest_i = random.choice(top_quest)
+    progress = round((len(persons) - len(applicants)) / len(persons) * 100)
+    quest_i = (random.choice(top_quest) if len(applicants) > 5 else top_quest[0]) if quest_i == -1 else quest_i
 
-    if actual_question(quest_i, counter, history) <= 0:
+    if actual_question(quest_i, counter[quest_i], len(applicants), history) == 0:
         rating[[i for i in persons if max_rating == rating[i]][0]] += 3
         await state.update_data(rating=rating)
 
@@ -71,15 +70,9 @@ async def ask_question(rating, call: types.CallbackQuery, connector, state, phot
     await state.update_data(quest_i=quest_i, n=n + 1, bot_message_id=bot_message.message_id)
 
 
-def actual_question(i, counter, history):
-    retry = sum([RETRY_FINE if a else RETRY_FINE * 10 for q, a in history if q == i])
-    reduce = sorted([counter[i][-1], counter[i][1]])
-    if reduce[0] > 0:
-        return reduce[0] - retry
-    elif reduce[1] > 0 and counter[i][0] > 0:
-        return (counter[i][1] - retry) / 10
-    else:
-        return 0
+def actual_question(i, k, n, history):
+    retry = sum([RETRY_FINE for q, a in history if q == i])
+    return min(k, n - k) - retry
 
 
 async def answer_message(data, state, text, keyboard, person_name=None):
@@ -106,17 +99,17 @@ async def answer_message(data, state, text, keyboard, person_name=None):
 
     try:
         mes_id = (await message.edit_text(text, reply_markup=keyboard)).message_id
-    except Exception:
+    except Exception as e:
         try:
             mes_id = state_data.get('message_id')
-            await bot.edit_message_text(text, mes_id, message.chat.id, reply_markup=keyboard)
-        except Exception:
+            await bot.edit_message_text(text, message.chat.id, mes_id, reply_markup=keyboard)
+        except Exception as e:
             mes_id = (await message.answer(text, reply_markup=keyboard)).message_id
             try:
                 await message.delete()
-            except Exception:
+            except Exception as e:
                 try:
                     await bot.delete_message(message.chat.id, state_data.get('message_id'))
-                except Exception:
+                except Exception as e:
                     pass
     await state.update_data(message_id=mes_id)

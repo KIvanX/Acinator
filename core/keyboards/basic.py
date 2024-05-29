@@ -1,15 +1,13 @@
 
-from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 def get_main_keyboard(is_admin=False):
     builder = InlineKeyboardBuilder()
-    builder.button(text='Начать игру', callback_data='game')
-    builder.button(text='Вопросы', callback_data='fill')
+    builder.button(text='🔮 Загадать', callback_data='game')
     if is_admin:
-        builder.button(text='База', callback_data='show')
-    builder.adjust(1, 2)
+        builder.button(text='📚 База', callback_data='base')
+    builder.adjust(1, 1)
     return builder.as_markup()
 
 
@@ -36,75 +34,49 @@ def check_person_keyboard():
     return builder.as_markup()
 
 
-def fill_menu_keyboard():
-    builder = InlineKeyboardBuilder()
-    builder.button(text='Добавить факт', callback_data='add_new_question')
-    builder.button(text='📝 Выбрать факт', callback_data='fill_q')
-    builder.button(text='👤 Выбрать персонажа', callback_data='fill_p')
-    builder.button(text='Все случайно', callback_data='fill_start')
-    builder.button(text='🏚 В меню', callback_data='start')
-    builder.adjust(1, 1, 1, 1, 1)
-    return builder.as_markup()
-
-
 def show_menu_keyboard():
     builder = InlineKeyboardBuilder()
-    builder.button(text='📝 Выбрать факт', callback_data='show_q')
-    builder.button(text='👤 Выбрать персонажа', callback_data='show_p')
+    builder.button(text='➕ Добавить факт', callback_data='add_new_question')
+    builder.button(text='📝 Выбрать факт', callback_data='base_q')
+    builder.button(text='👤 Выбрать персонажа', callback_data='base_p')
     builder.button(text='🏚 В меню', callback_data='start')
     builder.adjust(1, 1, 1)
     return builder.as_markup()
 
 
-def fill_data_keyboard(sort_by):
+def show_data_keyboard(sort_by):
     builder = InlineKeyboardBuilder()
-    builder.button(text='<', callback_data='fill_left')
-    builder.button(text='>', callback_data='fill_right')
-    builder.button(text=f'Сортировка: по {sort_by}', callback_data='fill_sort')
-    builder.button(text='Назад', callback_data='fill')
+    builder.button(text='<', callback_data='base_left')
+    builder.button(text='>', callback_data='base_right')
+    builder.button(text=f'Сортировка: по {sort_by}', callback_data='base_sort')
+    builder.button(text='Назад', callback_data='base')
     builder.adjust(2, 1, 1)
     return builder.as_markup()
 
 
-def show_data_keyboard(sort_by):
+def back_to_base_keyboard(data_type):
     builder = InlineKeyboardBuilder()
-    builder.button(text='<', callback_data='show_left')
-    builder.button(text='>', callback_data='show_right')
-    builder.button(text=f'Сортировка: по {sort_by}', callback_data='show_sort')
-    builder.button(text='Назад', callback_data='show')
-    builder.adjust(2, 1, 1)
+    builder.button(text='Назад', callback_data='base_' + data_type)
+    return builder.as_markup()
+
+
+def back_to_base_element_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.button(text='Назад', callback_data='base_element')
     return builder.as_markup()
 
 
 def show_base_keyboard(data_type):
     builder = InlineKeyboardBuilder()
-    builder.button(text='Назад', callback_data='show_' + data_type)
-    builder.adjust(1)
-    return builder.as_markup()
-
-
-def fill_select_num_keyboard():
-    builder = InlineKeyboardBuilder()
-    builder.button(text='Старт', callback_data='fill_start')
-    builder.button(text='Назад', callback_data='fill')
-    builder.adjust(2, 1)
-    return builder.as_markup()
-
-
-def fill_keyboard():
-    builder = InlineKeyboardBuilder()
-    builder.button(text='👍 Да', callback_data='fill_yes')
-    builder.button(text='👎 Нет', callback_data='fill_no')
-    builder.button(text='Пропустить', callback_data='fill_skip')
-    builder.button(text='Назад', callback_data='fill')
-    builder.adjust(2, 1, 1)
+    builder.button(text='Добавить', callback_data='add_new')
+    builder.button(text='Назад', callback_data='base_' + data_type)
+    builder.adjust(1, 1)
     return builder.as_markup()
 
 
 def finish_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(text='🏚 В меню', callback_data='start')
-    builder.adjust(1, 1)
     return builder.as_markup()
 
 
@@ -130,5 +102,13 @@ def ok_keyboard():
 
 def new_question_keyboard():
     builder = InlineKeyboardBuilder()
-    builder.button(text='Назад', callback_data='fill')
+    builder.button(text='Назад', callback_data='base')
+    return builder.as_markup()
+
+
+def new_question_check_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.button(text='Моего факта нет в списке', callback_data='add_quest')
+    builder.button(text='Назад', callback_data='add_new_question')
+    builder.adjust(1, 1)
     return builder.as_markup()

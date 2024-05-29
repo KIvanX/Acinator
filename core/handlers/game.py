@@ -24,9 +24,7 @@ async def game(call: types.CallbackQuery, state: FSMContext, connector):
 
         for i in persons:
             if quest_i in answers[i]:
-                rating[i] += k * answers[i][quest_i]
-                if k == answers[i][quest_i] == 0 or k == answers[i][quest_i] == 1:
-                    rating[i] += 0.5
+                rating[i] += k
 
         history = (await state.get_data()).get('history', [])
         await state.update_data(history=history + [(quest_i, k)], rating=rating)
@@ -34,6 +32,7 @@ async def game(call: types.CallbackQuery, state: FSMContext, connector):
         rat = sorted(rating.values(), reverse=True)
         if rat[0] - rat[1] >= WIN_ADVANCE:
             i = sorted(persons.keys(), reverse=True, key=lambda p: rating[p])[0]
+            await state.update_data(ask_id=i)
             return await answer_message(call, state, f'Ваш персонаж {persons[i]}?', check_person_keyboard(),
                                         person_name=persons[i])
     else:
@@ -48,7 +47,14 @@ async def check_person(call: types.CallbackQuery, state: FSMContext, connector):
     rating = {int(k): v for k, v in (await state.get_data())['rating'].items()}
 
     if call.data == 'check_person_yes':
-        await answer_message(call, state, 'Ура! Я снова угадал!', finish_keyboard())
+        questions = await database.get_questions(connector)
+        answers = await database.get_answers(connector)
+        history, p_id = (await state.get_data()).get('history'), (await state.get_data()).get('ask_id')
+        text = 'Ура! Я снова угадал!\n\n<u>Ответы</u>\n'
+        for i, (q_id, k) in enumerate(history):
+            status = "✅" if k == 1 and q_id in answers[p_id] or k != 1 and q_id not in answers[p_id] else '❌'
+            text += f'{i+1}) Персонаж {questions[q_id]}? - {["нет", "пропустить", "да"][k + 1]} {status} \n'
+        await answer_message(call, state, text, finish_keyboard())
 
     if call.data == 'check_person_no':
         rating[max(persons, key=lambda p: rating[p])] = 0
@@ -94,11 +100,12 @@ async def question_of_new_person(message: types.Message, state: FSMContext, conn
     await message.delete()
     p_id = await database.add_character(connector, state_data['name'])
     q_id = await database.add_question(connector, quest)
-    await database.add_answer(connector, p_id, q_id, True)
+    await database.add_answer(connector, p_id, q_id)
     await state.update_data(person_id=p_id)
 
     for q_id, answer in set([(e1, e2) for e1, e2 in (await state.get_data()).get('history', [])]):
-        await database.add_answer(connector, p_id, q_id, answer)
+        if answer == 1:
+            await database.add_answer(connector, p_id, q_id)
 
     mes_id = (await bot.edit_message_text('Отправь мне картинку персонажа', message.chat.id,
                                           state_data['message_id'], reply_markup=skip_photo_keyboard())).message_id

@@ -1,7 +1,7 @@
 
 from aiogram import types, F
 from config import bot, dp
-from core.handlers import basic, game, answers_to_questions, show_base
+from core.handlers import basic, game, show_base
 import asyncio
 from core.middlewares import add_user, basic
 from core.utils.database import edit_user
@@ -31,8 +31,7 @@ async def main():
     dp.message.middleware.register(add_user.AddUserMiddleware())
 
     dp.callback_query.register(game.game, F.data == 'game')
-    dp.callback_query.register(answers_to_questions.fill, F.data == 'fill')
-    dp.callback_query.register(show_base.select_type_show, F.data == 'show')
+    dp.callback_query.register(show_base.select_type_show, F.data == 'base')
 
     print('Processing...')
     await dp.start_polling(bot)

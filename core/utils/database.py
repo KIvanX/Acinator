@@ -20,10 +20,10 @@ async def get_questions(connector: connect):
 
 async def get_answers(connector: connect):
     answers = {}
-    for line in await connector.fetch('''SELECT * FROM character_question'''):
+    for line in await connector.fetch('''SELECT * FROM characters_facts'''):
         if not line[0] in answers:
-            answers[line[0]] = {}
-        answers[line[0]][line[1]] = line[2]
+            answers[line[0]] = set()
+        answers[line[0]].add(line[1])
 
     return answers
 
@@ -48,12 +48,12 @@ async def add_character(connector: connect, name):
     return [i for i in characters if characters[i] == name][0]
 
 
-async def add_answer(connector: connect, p_id: int, q_id: int, answer: bool):
-    await connector.execute('''INSERT INTO character_question VALUES($1, $2, $3)''', p_id, q_id, answer)
+async def add_answer(connector: connect, p_id: int, q_id: int):
+    await connector.execute('''INSERT INTO characters_facts VALUES($1, $2)''', p_id, q_id)
 
 
 async def delete_answer(connector: connect, p_id: int, q_id: int):
-    await connector.execute('''DELETE FROM character_question WHERE character_id = $1 AND question_id = $2''',
+    await connector.execute('''DELETE FROM characters_facts WHERE character_id = $1 AND question_id = $2''',
                             p_id, q_id)
 
 
@@ -71,3 +71,11 @@ async def get_user(connector: connect, user_id: int):
 async def edit_user(connector: connect, user_id: int, data: dict):
     for key in data:
         await connector.execute(f'UPDATE users SET {key} = $1 WHERE id = $2', data[key], user_id)
+
+
+async def delete_persons(connector: connect, p_id):
+    await connector.execute('DELETE FROM character WHERE id = $1',  p_id)
+
+
+async def delete_question(connector: connect, q_id):
+    await connector.execute('DELETE FROM question WHERE id = $1',  q_id)
