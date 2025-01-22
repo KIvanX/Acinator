@@ -14,6 +14,6 @@ PAGE_N = 25
 LOGS = True
 QUESTIONS_TO_OFFER = 15
 
-bot = Bot(token=env.str('DEBUG_TOKEN' if DEBUG else 'TOKEN'), parse_mode='HTML')
+bot = Bot(token=env.str('TOKEN'), parse_mode='HTML')
 storage = RedisStorage.from_url('redis://localhost:6379')
 dp = Dispatcher(storage=storage)
